@@ -1,0 +1,92 @@
+---
+title: "Machine Learning"
+author: "Ratan Jha"
+date: "December 25, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+#Machine Learning Project Work
+#Author Ratan Jha
+#First set directory to downloaded folder
+# Source of this data is "http://groupware.les.inf.puc-rio.br/har"
+#http://groupware.les.inf.puc-rio.br/har#sbia_paper_section
+# Download and save the file in a working directory
+setwd("~/RforRatan/practicalmachinelearning")
+# read training data
+maindata <- read.csv("pml-training.csv")
+#set seed fro repeatable results
+set.seed(32343)
+#load caret library
+library(caret)
+library(randomForest)
+library(e1071)
+#Let Us turnoff warning messages for knitting to avoid seeing those messages
+options(warn=-1)
+# Upon inspecting the data, we find that first 5 columns which contains
+# Since the number of predictors are huge (150) in the file,
+# There is no way to plot and assess which variables are related more closely
+# The other challenge since the output is a factor, it will not be right to do a 
+# a correlation analysis to remove variables which are strongly correlated with each 
+# other as well as weak relationship with the output variable
+# use name, time stamp, window fields which is not a predictor variable
+# first let us remove the first 5 fields
+sourcedata <- maindata [,6:160]
+# further investigation shows that data has blanks, NA and "#Div/o!"
+# Let us remove these values with "NA"
+sourcedata[sourcedata == ""] <- "NA"
+sourcedata[sourcedata == "#DIV/0!"]  <- "NA"
+# Only keep columns that have less than 40% NA in the columns
+sourcedata <-
+  sourcedata[, colSums(is.na(sourcedata)) < nrow(sourcedata) * 0.40]
+#sourcedata <- sapply(sourcedata,as.numeric)
+sourcedata$classe <- maindata$classe
+write.csv(sourcedata,"InterimResults.csv")
+#Split the training data into training and test set (75 to 25 ratio - since the sample size is large)
+inTrain <-
+  createDataPartition(sourcedata$classe,p = 0.75,list = FALSE)
+training <- sourcedata[inTrain,]
+testing <- sourcedata[-inTrain,]
+# Set the class as a factor for analysis
+training$classe <- as.factor(as.character(training$classe))
+testing$classe <- as.factor(as.character(testing$classe))
+# used randomForest function instead of train function as it happened to be many times faster
+RFModel <- randomForest(classe ~ .,data = training)
+#Check Class Error and Estimate of Error Rate
+print(RFModel)
+# Based on the model estimate of error on the test data will be 0.24%
+# That would translate accurace of 99.76% ( A very high accuracy)
+RFR <- predict(RFModel,testing)
+RFC <- confusionMatrix(RFR,testing$classe)$overall[1]
+# Check Accuracy for out 
+print(RFC)
+#random forest provided 99.6% accurate model while rpart gave only 49.8%. (removed code for rpart)
+#Hence we would leverage random forest for predicting
+#Read test Data
+testdata <- read.csv("pml-testing.csv")
+newtestdata <- training
+#Only keep columns that are present in trainign data
+newtestdata <- testdata[,names(testdata) %in% names(training)]
+#since test data doesn't have classe column defined, we will add the columne
+newtestdata$classe <- training$classe[1:1]
+levels(newtestdata) <- levels(training)
+#This code is to ensure that new_window has 2 factor variable as the training data has two values
+levels(newtestdata$new_window) <- c("yes","no")
+RPartFinalResult <- predict(RFModel,newtestdata)
+#getoutput in just problem_id and Classes
+answers <- data.frame()
+# get problem_id from testdata & results from RPartFinalResult
+answers <- subset(testdata,select = (problem_id))
+answers$classes <- RPartFinalResult
+print(answers)
+# End of Programming
+```
+
+You can also embed plots, for example:
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
