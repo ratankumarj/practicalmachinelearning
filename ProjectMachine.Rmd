@@ -45,7 +45,7 @@ sourcedata <-
   sourcedata[, colSums(is.na(sourcedata)) < nrow(sourcedata) * 0.40]
 #sourcedata <- sapply(sourcedata,as.numeric)
 sourcedata$classe <- maindata$classe
-write.csv(sourcedata,"InterimResults.csv")
+#write.csv(sourcedata,"InterimResults.csv")
 #Split the training data into training and test set (75 to 25 ratio - since the sample size is large)
 inTrain <-
   createDataPartition(sourcedata$classe,p = 0.75,list = FALSE)
